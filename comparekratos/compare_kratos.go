@@ -1,27 +1,25 @@
 // Package comparekratos provides comparison functions between Kratos demo projects
 // Compares source and fork projects, generates markdown difference reports
-// Supports comparing code, go.mod, and generating tree structures
+// Supports comparing code and generating tree structures
 //
 // comparekratos 提供 Kratos 演示项目之间的比较功能
 // 比较源项目和 fork 项目，生成 markdown 差异报告
-// 支持代码比较、go.mod 比较和生成目录树结构
+// 支持代码比较和生成目录树结构
 package comparekratos
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
-	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/yylego/must"
 	"github.com/yylego/osexec"
-	"github.com/yylego/osexec/osexectest"
+	"github.com/yylego/osexistpath/osmustexist"
 	"github.com/yylego/printgo"
 	"github.com/yylego/rese"
 	"github.com/yylego/tint"
+	"github.com/yylego/zaplog"
 )
 
 // ComparePath uses diff command to compare two paths and output results
@@ -29,10 +27,12 @@ import (
 //
 // ComparePath 使用 diff 命令比较两个路径的差异并输出结果
 // 忽略 go.mod、go.sum 和 bin 的差异
-func ComparePath(t *testing.T, path0 string, path1 string) {
-	t.Log("path0:", path0)
-	t.Log("path1:", path1)
-	output, err := osexec.NewCommandConfig().WithDebugMode(osexec.SHOW_COMMAND).WithExpectExit(1, "DIFFERENCES FOUND").
+func ComparePath(path0 string, path1 string) {
+	path0 = osmustexist.ROOT(path0)
+	path1 = osmustexist.ROOT(path1)
+	zaplog.SUG.Debugln("path0:", path0)
+	zaplog.SUG.Debugln("path1:", path1)
+	output := rese.A1(osexec.NewCommandConfig().WithDebugMode(osexec.SHOW_COMMAND).WithExpectExit(1, "DIFFERENCES FOUND").
 		Exec(
 			"diff",
 			"-ruN",
@@ -41,24 +41,25 @@ func ComparePath(t *testing.T, path0 string, path1 string) {
 			"--exclude=bin",
 			path0,
 			path1,
-		)
-	require.NoError(t, err)
+		))
 	if len(output) == 0 {
 		tint.GREEN.ShowMessage("SAME")
 	} else {
 		tint.AMBER.ShowMessage("⬇⬇⬇")
-		t.Log(string(output))
+		zaplog.SUG.Debugln(string(output))
 		tint.AMBER.ShowMessage("⬆⬆⬆")
 	}
 }
 
-// ShowReadableDiff shows formatted readable diff between two paths
+// ShowReadableChanges shows formatted readable changes between two paths
 // Red indicates deleted lines, green indicates added lines
 //
-// ShowReadableDiff 显示格式化的易读 diff 结果
+// ShowReadableChanges 显示格式化的易读变更结果
 // 红色显示删除的代码行，绿色显示新增的代码行
-func ShowReadableDiff(t *testing.T, path0, path1 string) {
-	output, err := osexec.NewCommandConfig().WithExpectExit(1, "DIFFERENCES FOUND").
+func ShowReadableChanges(path0, path1 string) {
+	path0 = osmustexist.ROOT(path0)
+	path1 = osmustexist.ROOT(path1)
+	output := rese.A1(osexec.NewCommandConfig().WithExpectExit(1, "DIFFERENCES FOUND").
 		Exec(
 			"diff",
 			"-ruN",
@@ -67,8 +68,7 @@ func ShowReadableDiff(t *testing.T, path0, path1 string) {
 			"--exclude=bin",
 			path0,
 			path1,
-		)
-	require.NoError(t, err)
+		))
 
 	if len(output) == 0 {
 		tint.GREEN.ShowMessage("✅ NO CHANGES")
@@ -81,14 +81,13 @@ func ShowReadableDiff(t *testing.T, path0, path1 string) {
 
 	printFile := func() {
 		if sourcePath != "" && (len(adds) > 0 || len(cuts) > 0) {
-			fmt.Printf("\n📄 %s (+%d -%d)\n", sourcePath, len(adds), len(cuts))
+			zaplog.SUG.Debugln(tint.CYAN.Sprintf("📄 %s (+%d -%d)", sourcePath, len(adds), len(cuts)))
 			for _, line := range cuts {
-				fmt.Printf("  %s\n", tint.RED.Sprint("- "+line))
+				zaplog.SUG.Debugln(tint.RED.Sprint("  - " + line))
 			}
 			for _, line := range adds {
-				fmt.Printf("  %s\n", tint.GREEN.Sprint("+ "+line))
+				zaplog.SUG.Debugln(tint.GREEN.Sprint("  + " + line))
 			}
-			fmt.Println()
 		}
 	}
 
@@ -126,8 +125,10 @@ func ShowReadableDiff(t *testing.T, path0, path1 string) {
 //
 // GenerateChangesFile 生成代码差异的 markdown 文件
 // 以 markdown 格式输出 diff，支持语法高亮
-func GenerateChangesFile(t *testing.T, path0, path1, outputPath string) {
-	output, err := osexec.NewCommandConfig().WithExpectExit(1, "DIFFERENCES FOUND").
+func GenerateChangesFile(path0, path1, outputPath string) {
+	path0 = osmustexist.ROOT(path0)
+	path1 = osmustexist.ROOT(path1)
+	output := rese.A1(osexec.NewCommandConfig().WithExpectExit(1, "DIFFERENCES FOUND").
 		Exec(
 			"diff",
 			"-ruN",
@@ -137,14 +138,12 @@ func GenerateChangesFile(t *testing.T, path0, path1, outputPath string) {
 			"--exclude=bin",
 			path0,
 			path1,
-		)
-	require.NoError(t, err)
+		))
 
 	if len(output) == 0 {
 		content := "# Changes\n\n✅ NO CHANGES\n"
-		err := os.WriteFile(outputPath, []byte(content), 0644)
-		require.NoError(t, err)
-		t.Logf("Generated %s (no changes)", outputPath)
+		must.Done(os.WriteFile(outputPath, []byte(content), 0644))
+		zaplog.SUG.Debugln("Generated", outputPath, "(no changes)")
 		return
 	}
 
@@ -206,36 +205,34 @@ func GenerateChangesFile(t *testing.T, path0, path1, outputPath string) {
 
 	processFile()
 
-	require.NoError(t, os.WriteFile(outputPath, ptx.Bytes(), 0644))
-	t.Logf("Generated %s with differences", outputPath)
+	must.Done(os.WriteFile(outputPath, ptx.Bytes(), 0644))
+	zaplog.SUG.Debugln("Generated", outputPath, "with differences")
 }
 
 // GenerateTreeChanges generates tree structure of sibling projects
-// Lists DIRs except demo1, demo2 and known ones, outputs to markdown
+// Lists DIRs except excluded ones, outputs to markdown
 //
 // GenerateTreeChanges 生成兄弟项目的目录树结构
-// 列出除了 demo1、demo2 和已知目录之外的所有目录，输出到 markdown
-func GenerateTreeChanges(t *testing.T, root string, excludeNames []string, outputPath string) {
-	osexectest.SkipIfCommandNotFound(t, "tree")
-
-	t.Log(root)
+// 列出除了排除目录之外的所有目录，输出到 markdown
+func GenerateTreeChanges(root string, excludeNames []string, outputPath string) {
+	root = osmustexist.ROOT(root)
+	zaplog.SUG.Debugln(root)
 
 	var matchNames []string
 	for _, item := range rese.A1(os.ReadDir(root)) {
 		if item.IsDir() {
 			name := item.Name()
-			t.Log("check:", name)
 			if strings.HasPrefix(name, ".") {
 				continue
 			}
 			if slices.Contains(excludeNames, name) {
 				continue
 			}
-			t.Log("match:", name)
+			zaplog.SUG.Debugln("match:", name)
 			matchNames = append(matchNames, name)
 		}
 	}
-	t.Log("match:", matchNames)
+	zaplog.SUG.Debugln("match:", matchNames)
 
 	if len(matchNames) == 0 {
 		content := "# Changes\n\n✅ NO CHANGES\n"
@@ -278,9 +275,7 @@ func GenerateTreeChanges(t *testing.T, root string, excludeNames []string, outpu
 		ptx.Println()
 
 		subRoot := filepath.Join(root, name)
-		t.Log(subRoot)
 		treeOutput := rese.A1(osexec.ExecInPath(subRoot, "tree", "--noreport", "--charset=ascii", "--gitignore", "-I", "node_modules|.git|bin|.idea|.vscode"))
-		t.Log(string(treeOutput))
 
 		ptx.Println("```")
 		ptx.Write(treeOutput)

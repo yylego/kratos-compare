@@ -39,16 +39,16 @@ go get github.com/yylego/kratos-compare
 import "github.com/yylego/kratos-compare/comparekratos"
 
 // 比较两个项目路径
-comparekratos.ComparePath(t, sourcePath, forkPath)
+comparekratos.ComparePath(sourcePath, forkPath)
 
-// 显示易读的彩色 diff
-comparekratos.ShowReadableDiff(t, sourcePath, forkPath)
+// 显示易读的彩色变更
+comparekratos.ShowReadableChanges(sourcePath, forkPath)
 
 // 生成 markdown 差异报告
-comparekratos.GenerateChangesFile(t, sourcePath, forkPath, "changes/demo1.md")
+comparekratos.GenerateChangesFile(sourcePath, forkPath, "changes/demo1.md")
 
 // 生成目录树结构文档
-comparekratos.GenerateTreeChanges(t, root, excludeNames, "changes/trees.md")
+comparekratos.GenerateTreeChanges(root, excludeNames, "changes/trees.md")
 ```
 
 ---
