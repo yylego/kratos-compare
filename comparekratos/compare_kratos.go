@@ -22,12 +22,12 @@ import (
 	"github.com/yylego/zaplog"
 )
 
-// ComparePath uses diff command to compare two paths and output results
-// Ignores go.mod, go.sum, and bin differences
+// ComparePath uses diff command to compare two paths (files and directories) and output results
+// Ignores go.mod, go.sum, and bin differences when comparing directories
 //
-// ComparePath 使用 diff 命令比较两个路径的差异并输出结果
-// 忽略 go.mod、go.sum 和 bin 的差异
-func ComparePath(path0 string, path1 string) {
+// ComparePath 使用 diff 命令比较两个路径（文件或目录）的差异并输出结果
+// 比较目录时忽略 go.mod、go.sum 和 bin 的差异
+func ComparePath(path0 string, path1 string) []byte {
 	path0 = osmustexist.PATH(path0)
 	path1 = osmustexist.PATH(path1)
 	zaplog.SUG.Debugln("path0:", path0)
@@ -49,6 +49,7 @@ func ComparePath(path0 string, path1 string) {
 		zaplog.SUG.Debugln(string(output))
 		tint.AMBER.ShowMessage("⬆⬆⬆")
 	}
+	return output
 }
 
 // ShowReadableChanges shows formatted readable changes between two paths
@@ -56,7 +57,7 @@ func ComparePath(path0 string, path1 string) {
 //
 // ShowReadableChanges 显示格式化的易读变更结果
 // 红色显示删除的代码行，绿色显示新增的代码行
-func ShowReadableChanges(path0, path1 string) {
+func ShowReadableChanges(path0, path1 string) []byte {
 	path0 = osmustexist.PATH(path0)
 	path1 = osmustexist.PATH(path1)
 	output := rese.V1(osexec.NewCommandConfig().WithExpectExit(1, "DIFFERENCES FOUND").
@@ -72,7 +73,7 @@ func ShowReadableChanges(path0, path1 string) {
 
 	if len(output) == 0 {
 		tint.GREEN.ShowMessage("✅ NO CHANGES")
-		return
+		return output
 	}
 	tint.AMBER.ShowMessage("📋 FOUND DIFFERENCES")
 
@@ -118,6 +119,7 @@ func ShowReadableChanges(path0, path1 string) {
 	}
 
 	printFile()
+	return output
 }
 
 // GenerateChangesFile generates markdown file of code differences
@@ -210,10 +212,10 @@ func GenerateChangesFile(path0, path1, outputPath string) {
 }
 
 // GenerateTreeChanges generates tree structure of sibling projects
-// Lists DIRs except excluded ones, outputs to markdown
+// Lists subdirectories except excluded ones, outputs to markdown
 //
 // GenerateTreeChanges 生成兄弟项目的目录树结构
-// 列出除了排除目录之外的所有目录，输出到 markdown
+// 列出除了排除目录之外的所有子目录，输出到 markdown
 func GenerateTreeChanges(root string, excludeNames []string, outputPath string) {
 	root = osmustexist.ROOT(root)
 	zaplog.SUG.Debugln(root)

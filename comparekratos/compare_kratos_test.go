@@ -8,6 +8,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestComparePath_SameFile(t *testing.T) {
+	tmpRoot := t.TempDir()
+
+	fileA := filepath.Join(tmpRoot, "a.go")
+	fileB := filepath.Join(tmpRoot, "b.go")
+	require.NoError(t, os.WriteFile(fileA, []byte("package main\n"), 0644))
+	require.NoError(t, os.WriteFile(fileB, []byte("package main\n"), 0644))
+
+	output := ComparePath(fileA, fileB)
+	require.Empty(t, output)
+}
+
+func TestComparePath_DiffFile(t *testing.T) {
+	tmpRoot := t.TempDir()
+
+	fileA := filepath.Join(tmpRoot, "a.go")
+	fileB := filepath.Join(tmpRoot, "b.go")
+	require.NoError(t, os.WriteFile(fileA, []byte("package main\n"), 0644))
+	require.NoError(t, os.WriteFile(fileB, []byte("package main\n\nfunc init() {}\n"), 0644))
+
+	output := ComparePath(fileA, fileB)
+	require.NotEmpty(t, output)
+	require.Contains(t, string(output), "func init")
+}
+
 func TestComparePath_Same(t *testing.T) {
 	tmpRoot := t.TempDir()
 
@@ -19,7 +44,8 @@ func TestComparePath_Same(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(pathA, "main.go"), []byte("package main\n"), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(pathB, "main.go"), []byte("package main\n"), 0644))
 
-	ComparePath(pathA, pathB)
+	output := ComparePath(pathA, pathB)
+	require.Empty(t, output)
 }
 
 func TestComparePath_Diff(t *testing.T) {
@@ -33,7 +59,9 @@ func TestComparePath_Diff(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(pathA, "main.go"), []byte("package main\n"), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(pathB, "main.go"), []byte("package main\n\nfunc init() {}\n"), 0644))
 
-	ComparePath(pathA, pathB)
+	output := ComparePath(pathA, pathB)
+	require.NotEmpty(t, output)
+	require.Contains(t, string(output), "func init")
 }
 
 func TestShowReadableChanges_Same(t *testing.T) {
@@ -47,7 +75,8 @@ func TestShowReadableChanges_Same(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(pathA, "main.go"), []byte("package main\n"), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(pathB, "main.go"), []byte("package main\n"), 0644))
 
-	ShowReadableChanges(pathA, pathB)
+	output := ShowReadableChanges(pathA, pathB)
+	require.Empty(t, output)
 }
 
 func TestShowReadableChanges_Diff(t *testing.T) {
@@ -61,7 +90,9 @@ func TestShowReadableChanges_Diff(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(pathA, "main.go"), []byte("package main\n"), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(pathB, "main.go"), []byte("package main\n\nfunc init() {}\n"), 0644))
 
-	ShowReadableChanges(pathA, pathB)
+	output := ShowReadableChanges(pathA, pathB)
+	require.NotEmpty(t, output)
+	require.Contains(t, string(output), "func init")
 }
 
 func TestGenerateChangesFile_Same(t *testing.T) {
