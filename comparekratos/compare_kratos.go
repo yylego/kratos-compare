@@ -102,13 +102,7 @@ func ShowReadableChanges(path0, path1 string) []byte {
 			// skip
 
 		case strings.HasPrefix(line, "+++"):
-			if parts := strings.Fields(line); len(parts) >= 2 {
-				if strings.Contains(parts[1], path1+"/") {
-					sourcePath = strings.TrimPrefix(parts[1], path1+"/")
-				} else {
-					sourcePath = filepath.Base(parts[1])
-				}
-			}
+			sourcePath = parseSourcePath(line, path1)
 
 		case strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++"):
 			adds = append(adds, line[1:])
@@ -181,13 +175,7 @@ func GenerateChangesFile(path0, path1, outputPath string) {
 			// skip
 
 		case strings.HasPrefix(line, "+++"):
-			if parts := strings.Fields(line); len(parts) >= 2 {
-				if strings.Contains(parts[1], path1+"/") {
-					sourcePath = strings.TrimPrefix(parts[1], path1+"/")
-				} else {
-					sourcePath = filepath.Base(parts[1])
-				}
-			}
+			sourcePath = parseSourcePath(line, path1)
 
 		case strings.HasPrefix(line, "@@"):
 			diffLines = append(diffLines, line)
@@ -209,6 +197,17 @@ func GenerateChangesFile(path0, path1, outputPath string) {
 
 	must.Done(os.WriteFile(outputPath, ptx.Bytes(), 0644))
 	zaplog.SUG.Debugln("Generated", outputPath, "with differences")
+}
+
+// parseSourcePath extracts relative source path from a diff "+++ " line
+func parseSourcePath(diffLine string, basePath string) string {
+	if parts := strings.Fields(diffLine); len(parts) >= 2 {
+		if strings.Contains(parts[1], basePath+"/") {
+			return strings.TrimPrefix(parts[1], basePath+"/")
+		}
+		return filepath.Base(parts[1])
+	}
+	return ""
 }
 
 // GenerateTreeChanges generates tree structure of sibling projects
