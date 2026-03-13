@@ -32,7 +32,7 @@ func ComparePath(path0 string, path1 string) {
 	path1 = osmustexist.ROOT(path1)
 	zaplog.SUG.Debugln("path0:", path0)
 	zaplog.SUG.Debugln("path1:", path1)
-	output := rese.A1(osexec.NewCommandConfig().WithDebugMode(osexec.SHOW_COMMAND).WithExpectExit(1, "DIFFERENCES FOUND").
+	output := rese.V1(osexec.NewCommandConfig().WithDebugMode(osexec.SHOW_COMMAND).WithExpectExit(1, "DIFFERENCES FOUND").
 		Exec(
 			"diff",
 			"-ruN",
@@ -59,7 +59,7 @@ func ComparePath(path0 string, path1 string) {
 func ShowReadableChanges(path0, path1 string) {
 	path0 = osmustexist.ROOT(path0)
 	path1 = osmustexist.ROOT(path1)
-	output := rese.A1(osexec.NewCommandConfig().WithExpectExit(1, "DIFFERENCES FOUND").
+	output := rese.V1(osexec.NewCommandConfig().WithExpectExit(1, "DIFFERENCES FOUND").
 		Exec(
 			"diff",
 			"-ruN",
@@ -128,7 +128,7 @@ func ShowReadableChanges(path0, path1 string) {
 func GenerateChangesFile(path0, path1, outputPath string) {
 	path0 = osmustexist.ROOT(path0)
 	path1 = osmustexist.ROOT(path1)
-	output := rese.A1(osexec.NewCommandConfig().WithExpectExit(1, "DIFFERENCES FOUND").
+	output := rese.V1(osexec.NewCommandConfig().WithExpectExit(1, "DIFFERENCES FOUND").
 		Exec(
 			"diff",
 			"-ruN",
